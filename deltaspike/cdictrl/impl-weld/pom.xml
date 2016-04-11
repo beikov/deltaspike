@@ -38,11 +38,23 @@
             <artifactId>deltaspike-cdictrl-api</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.deltaspike.core</groupId>
+            <artifactId>deltaspike-core-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
+        <dependency>
+            <groupId>org.apache.geronimo.specs</groupId>
+            <artifactId>geronimo-servlet_2.5_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>org.jboss.weld.se</groupId>
             <artifactId>weld-se-core</artifactId>
             <version>${weld.version}</version>
+            <!-- Only works with Weld 2 currently on runtime -->
+<!--             <version>2.3.2.Final</version> -->
             <scope>provided</scope>
         </dependency>
 

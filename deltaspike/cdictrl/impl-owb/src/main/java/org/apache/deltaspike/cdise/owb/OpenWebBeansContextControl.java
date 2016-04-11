@@ -18,17 +18,29 @@
  */
 package org.apache.deltaspike.cdise.owb;
 
+import java.lang.annotation.Annotation;
+import java.util.List;
+import java.util.Map;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.ConversationScoped;
 import javax.enterprise.context.Dependent;
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.context.SessionScoped;
+import javax.enterprise.context.spi.Context;
+import javax.enterprise.context.spi.Contextual;
+import javax.enterprise.context.spi.CreationalContext;
+import javax.enterprise.inject.spi.Bean;
+import javax.enterprise.inject.spi.BeanManager;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import java.lang.annotation.Annotation;
-
 import org.apache.deltaspike.cdise.api.ContextControl;
+import org.apache.deltaspike.cdise.api.ContextReference;
 import org.apache.webbeans.config.WebBeansContext;
+import org.apache.webbeans.context.creational.BeanInstanceBag;
+import org.apache.webbeans.intercept.ApplicationScopedBeanInterceptorHandler;
+import org.apache.webbeans.proxy.OwbNormalScopeProxy;
 import org.apache.webbeans.spi.ContextsService;
 
 /**
@@ -39,6 +51,7 @@ import org.apache.webbeans.spi.ContextsService;
 public class OpenWebBeansContextControl implements ContextControl
 {
 
+
     /**
      * we cannot directly link to MockHttpSession as this would lead to
      * NoClassDefFound errors for cases where no servlet-api is on the classpath.
@@ -46,6 +59,10 @@ public class OpenWebBeansContextControl implements ContextControl
      */
     private static ThreadLocal<Object> mockSessions = new ThreadLocal<Object>();
 
+    @Inject
+    private OwbContextCapturer contextCapturer;
+    @Inject
+    private BeanManager beanManager;
 
     @Override
     public void startContexts()
@@ -106,6 +123,68 @@ public class OpenWebBeansContextControl implements ContextControl
         else if (scopeClass.isAssignableFrom(ConversationScoped.class))
         {
             stopConversationScope();
+        }
+    }
+
+    @Override
+    public List<ContextReference> captureContexts()
+    {
+        return contextCapturer.captureContexts();
+    }
+
+    @Override
+    public void removeFromContext(String beanName)
+    {
+        @SuppressWarnings("unchecked")
+        Bean<Object> bean = (Bean<Object>) beanManager.resolve(beanManager.getBeans(beanName));
+        
+        if (bean == null)
+        {
+            throw new IllegalArgumentException("Bean with name '" + beanName + "' is unsatisfied!");
+        }
+        
+        Context context = beanManager.getContext(bean.getScope());
+
+        if (Cdi10CompatibilityUtils.isAlterableContext(context))
+        {
+            Cdi10CompatibilityUtils.destroyBean(context, bean);
+        }
+        else if (context instanceof org.apache.webbeans.context.AbstractContext)
+        {
+            Map<Contextual<?>, BeanInstanceBag<?>> instanceMap = OwbUtils.getComponentInstanceMap(context);
+            BeanInstanceBag<?> instance = instanceMap.get(bean);
+            
+            if (instance != null)
+            {
+                @SuppressWarnings("unchecked")
+                CreationalContext<Object> cc = (CreationalContext<Object>) instance.getBeanCreationalContext();
+                bean.destroy(instance, cc);
+                instanceMap.remove(bean);
+                
+                if (ApplicationScoped.class == bean.getScope())
+                {
+                    Object proxy = beanManager.getReference(bean, bean.getTypes().iterator().next(),
+                            instance.getBeanCreationalContext());
+                    
+                    if (proxy instanceof OwbNormalScopeProxy)
+                    {
+                        Object contextualInstanceProvider = OwbUtils.getOwbContextualInstanceProvider(proxy);
+                        
+                        if (contextualInstanceProvider instanceof ApplicationScopedBeanInterceptorHandler)
+                        {
+                            OwbUtils.clearCachedInstance(
+                                    (ApplicationScopedBeanInterceptorHandler) contextualInstanceProvider);
+                        }
+                    }
+                    
+                }
+            }
+        }
+        else
+        {
+            // TODO: actually we could improve this to also remove beans from DeltaSpike defined contexts
+            throw new IllegalArgumentException("Bean with name '" + beanName
+                    + "' belongs to a custom scope, but beans can only be removed from internal scopes!");
         }
     }
 

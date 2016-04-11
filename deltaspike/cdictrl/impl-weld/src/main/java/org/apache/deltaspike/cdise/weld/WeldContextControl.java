@@ -18,20 +18,28 @@
  */
 package org.apache.deltaspike.cdise.weld;
 
+import java.lang.annotation.Annotation;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.ConversationScoped;
 import javax.enterprise.context.Dependent;
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.context.SessionScoped;
+import javax.enterprise.context.spi.Context;
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.spi.Bean;
+import javax.enterprise.inject.spi.BeanManager;
 import javax.inject.Inject;
-import java.lang.annotation.Annotation;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.deltaspike.cdise.api.ContextControl;
+import org.apache.deltaspike.cdise.api.ContextReference;
 import org.jboss.weld.context.AbstractSharedContext;
 import org.jboss.weld.context.ApplicationContext;
+import org.jboss.weld.context.api.ContextualInstance;
+import org.jboss.weld.context.beanstore.BoundBeanStore;
 import org.jboss.weld.context.bound.BoundConversationContext;
 import org.jboss.weld.context.bound.BoundRequestContext;
 import org.jboss.weld.context.bound.BoundSessionContext;
@@ -61,6 +69,10 @@ public class WeldContextControl implements ContextControl
     @Inject
     private BoundConversationContext conversationContext;
 
+    @Inject
+    private WeldContextCapturer contextCapturer;
+    @Inject
+    private BeanManager beanManager;
 
 
     @Override
@@ -125,6 +137,55 @@ public class WeldContextControl implements ContextControl
         else if (scopeClass.isAssignableFrom(ConversationScoped.class))
         {
             stopConversationScope();
+        }
+    }
+
+    @Override
+    public List<ContextReference> captureContexts()
+    {
+        return contextCapturer.captureContexts();
+    }
+
+    @Override
+    public void removeFromContext(String beanName)
+    {
+        @SuppressWarnings("unchecked")
+        Bean<Object> bean = (Bean<Object>) beanManager.resolve(beanManager.getBeans(beanName));
+        
+        if (bean == null)
+        {
+            throw new IllegalArgumentException("Bean with name '" + beanName + "' is unsatisfied!");
+        }
+        
+        Context context = beanManager.getContext(bean.getScope());
+        
+        if (Cdi10CompatibilityUtils.isAlterableContext(context))
+        {
+            // Apparently the bean isn't found in the beanStore when using the LazySessionBeanStore
+            // So we have to "load" it first, so that it gets fetched from the session
+            if (bean.getScope() == ConversationScoped.class || bean.getScope() == SessionScoped.class)
+            {
+                context.get(bean);
+            }
+            Cdi10CompatibilityUtils.destroyBean(context, bean);
+        }
+        else if (context instanceof org.jboss.weld.context.AbstractContext)
+        {
+            Object beanId = WeldUtils.getBeanId(context);
+            BoundBeanStore beanStore = WeldUtils.getBeanStore(context);
+            ContextualInstance<Object> instance = WeldUtils.getBeanStoreInstance(beanStore, beanId);
+            
+            if (instance != null)
+            {
+                instance.getContextual().destroy(instance.getInstance(), instance.getCreationalContext());
+                WeldUtils.removeBeanStoreInstance(beanStore, beanId);
+            }
+        }
+        else
+        {
+            // TODO: actually we could improve this to also remove beans from DeltaSpike defined contexts
+            throw new IllegalArgumentException("Bean with name '" + beanName
+                    + "' belongs to a custom scope, but beans can only be removed from internal scopes!");
         }
     }
 

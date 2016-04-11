@@ -19,6 +19,7 @@
 package org.apache.deltaspike.cdise.api;
 
 import java.lang.annotation.Annotation;
+import java.util.List;
 
 /**
  * Control native CDI Container Contexts.
@@ -70,6 +71,20 @@ public interface ContextControl
      * @param scopeClass e.g. RequestScoped.class
      */
     void stopContext(Class<? extends Annotation> scopeClass);
+    
+    /**
+     * Captures the contexts of the current thread.
+     * 
+     * @return the contexts of the current thread
+     */
+    List<ContextReference> captureContexts();
+    
+    /**
+     * Removes the bean with the given name from it's context.
+     * 
+     * @param beanName the name of the bean that should be removed
+     */
+    void removeFromContext(String beanName);
 
 
 }

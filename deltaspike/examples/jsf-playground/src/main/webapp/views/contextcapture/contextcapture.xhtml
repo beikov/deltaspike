@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements. See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership. The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License. You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied. See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+<!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html" xmlns:f="http://java.sun.com/jsf/core" xmlns:ds="http://deltaspike.apache.org/jsf">
+
+<h:head>
+    <title>DeltaSpike JSF Playground</title>
+</h:head>
+
+<h:body>
+    <h:form>
+        <ds:windowId />
+        
+        <h:panelGroup id="dataGroup">
+	        <h:panelGrid columns="2" rendered="#{contextCaptureController.loaded}">
+	        	<h:outputText value="Load time" />
+	        	<h:outputText value="#{contextCaptureController.loadTime} ms" />
+	        	
+	        	<h:outputText value="Data1 - RequestScope capturing" />
+	        	<h:outputText value="#{contextCaptureController.data1}" />
+	        	
+	        	<h:outputText value="Data2 - ConversationScope capturing" />
+	        	<h:outputText value="#{contextCaptureController.data2}" />
+	        	
+	        	<h:outputText value="Data3 - SessionScope capturing" />
+	        	<h:outputText value="#{contextCaptureController.data3}" />
+	        	
+	        	<h:outputText value="Data4 - ApplicationScope capturing" />
+	        	<h:outputText value="#{contextCaptureController.data4}" />
+	        	
+	        	<h:outputText value="Data5 - RequestScope recapturing" />
+	        	<h:outputText value="#{contextCaptureController.data5}" />
+	        	
+	        	<h:outputText value="Data6 - ConversationScope recapturing" />
+	        	<h:outputText value="#{contextCaptureController.data6}" />
+	        	
+	        	<h:outputText value="Data7 - SessionScope recapturing" />
+	        	<h:outputText value="#{contextCaptureController.data7}" />
+	        	
+	        	<h:outputText value="Data8 - ApplicationScope recapturing" />
+	        	<h:outputText value="#{contextCaptureController.data8}" />
+	        </h:panelGrid>
+        </h:panelGroup>
+
+        <h:commandButton value="Load synchronously" actionListener="#{contextCaptureController.loadSynchronously()}">
+        	<f:ajax render="dataGroup"/>
+        </h:commandButton>
+        <h:commandButton value="Load asynchronously" actionListener="#{contextCaptureController.loadAsynchronously()}">
+        	<f:ajax render="dataGroup" />
+        </h:commandButton>
+    </h:form>
+</h:body>
+
+</html>

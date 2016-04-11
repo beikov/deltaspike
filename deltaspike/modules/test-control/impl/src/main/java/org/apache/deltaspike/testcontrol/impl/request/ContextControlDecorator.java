@@ -19,6 +19,7 @@
 package org.apache.deltaspike.testcontrol.impl.request;
 
 import org.apache.deltaspike.cdise.api.ContextControl;
+import org.apache.deltaspike.cdise.api.ContextReference;
 import org.apache.deltaspike.testcontrol.api.junit.CdiTestRunner;
 import org.apache.deltaspike.testcontrol.spi.ExternalContainer;
 
@@ -31,6 +32,7 @@ import javax.enterprise.context.SessionScoped;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.lang.annotation.Annotation;
+import java.util.List;
 
 /**
  * Needed to allow the manual usage of
@@ -110,6 +112,20 @@ public class ContextControlDecorator implements ContextControl
                 externalContainer.stopScope(scopeClass);
             }
         }
+    }
+
+    @Override
+    public List<ContextReference> captureContexts()
+    {
+        // TODO: Not sure what to do here
+        return wrapped.captureContexts();
+    }
+
+    @Override
+    public void removeFromContext(String beanName)
+    {
+        // TODO: Not sure what to do here
+        wrapped.removeFromContext(beanName);
     }
 
     private boolean isManuallyHandledRequest(Class<? extends Annotation> scopeClass)
